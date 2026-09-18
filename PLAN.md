@@ -553,7 +553,7 @@ across 3 rows instead of a fixed grid. Full test suite re-run afterward
 (unchanged — this was a display-only pass, no `agentic_ds/` logic
 touched) to confirm nothing broke.
 
-## Phase 9 — Skills & Tools architecture — 9a Done, 9b/9c/9d not yet built
+## Phase 9 — Skills & Tools architecture — 9a/9b/9c Done, 9d not yet built
 
 **The debt this pays down**: the "v1 simplification" in Agent design
 (above) said the subagent split — profiler/data-prep/modeling/explainer/
@@ -668,16 +668,40 @@ mapped to tools that already exist above:
   without a model and 27 with one; and the two error-path tests above.
   Full existing suite (8 other test modules) re-run alongside — all
   still green, confirming this was purely additive.
-- **9b — Skill files**: author the five `skills/*.md` files above, plus a
-  small loader (`agentic_ds/skills.py`) that parses frontmatter and lists
-  what's available — same shape as this session's own skill-routing
-  mechanism, deliberately, so it's a familiar pattern rather than a new
-  one invented from scratch.
-- **9c — Copilot becomes the real agent**: bind all Phase-9a tools to
-  the model, put the Phase-9b skill menu in the system prompt, replace
-  the current NL-to-SQL-only loop with a general tool-calling loop
-  (`smart_sql_query`/`nl_to_sql` becomes one tool among many, not the
-  only one). This is the phase that actually closes the journey gap.
+- **9b — Skill files — Done**: the five `skills/*.md` files above, each
+  frontmatter (`name`/`description`) + a numbered playbook naming exact
+  Phase-9a tool names in call order — `ab_testing.md`, `eda_report.md`,
+  `glm_diagnosis.md`, `trend_check.md`, `survival_comparison.md`.
+  `agentic_ds/skills.py` — `load_skills()`/`skill_menu()` — hand-rolled
+  frontmatter parsing (two flat fields, splitting on `---` is shorter than
+  adding `pyyaml` for it) rather than a new dependency. `ab_testing.md`
+  documents its own gap up front (no sample-size/power tool exists) rather
+  than having the future agent bluff an answer. `tests/test_skills.py`:
+  all 5 load with non-empty description+instructions, the menu string
+  contains every skill's name and description.
+- **9c — Copilot becomes the real agent — Done**: `agentic_ds.agent_tools.run_agent(df,
+  source_label, model, question, memory_db)` — binds all Phase 9a tools
+  (`model.bind_tools(tools)`) with the Phase 9b skill menu folded into the
+  system prompt, then loops call→run-requested-tools→feed-back-as-
+  `ToolMessage` up to `MAX_TOOL_CALLS=6` or until the model stops
+  requesting tools. `app_pages/copilot.py` now calls this instead of
+  `nl_to_sql` directly — `smart_sql_query` is one tool among 26, not the
+  only one, closing the actual journey gap this whole phase was named for
+  (Copilot can now run a hypothesis test, fit a GLM, check stationarity,
+  or compare survival curves, not just write SQL).
+
+  **Verified without a real LLM call** — no `OPENROUTER_API_KEY` is
+  configured in this dev environment, so `tests/test_run_agent.py` uses a
+  fake chat model with scripted `AIMessage`/`tool_calls` responses to
+  exercise the loop mechanics deterministically: stops immediately with
+  no tool calls, runs one tool then returns the final answer, chains
+  multiple tool calls in sequence, degrades to an error string instead of
+  crashing on an unknown tool name, and actually stops at
+  `MAX_TOOL_CALLS` rather than looping forever. `AIMessage.tool_calls`'s
+  exact shape (`{"name", "args", "id", "type"}`) was confirmed against the
+  installed `langchain_core` rather than assumed. Copilot's no-dataset and
+  no-API-key guards verified live in the browser — the actual tool-calling
+  path is untested against a real model until a key is configured.
 - **9d — stretch, only if 9a-9c prove valuable**: offer the same
   tool-calling agent from other pages too (an "ask about this result"
   affordance on GLM/Bayesian/Survival, reusing one agent+tool set instead
@@ -694,15 +718,19 @@ anything destructive directly.
 
 ## Immediate next step
 
-Phase 9a (Tools) is done. Next: 9b — author the five `skills/*.md`
-playbooks and the small loader that lists them, per the initial skill set
-above. 9c (Copilot becomes the real tool-calling agent) is the phase that
-actually closes the journey gap, but it depends on 9b's skill menu
-existing first. The eight numbered phases are otherwise all done; the
-app covers two problem types end to end: AutoML
-(Phases 1-3) and classical statistics — hypothesis testing, GLM, Bayesian
-modeling, time series, and survival analysis (Phases 4-8) — sharing one
-Data pipeline and one Copilot. Remaining scope decisions (see Non-goals
-for what's deliberately not here yet: power analysis, database sources, run
-persistence, sandboxed code execution for hosting), not obvious
-follow-ups — say which direction matters most.
+Phases 9a-9c are done — the journey gap named back at "how to add A/B
+testing" / "think about the developer journey" is closed: Copilot can now
+run any of the 26 tools (hypothesis tests, GLM, Bayesian, ARIMA, Cox,
+survival, SQL), not just write SQL. Untested against a real model (no
+`OPENROUTER_API_KEY` in this dev environment) — worth a live check with a
+real key before calling this fully proven, though the loop mechanics are
+verified. 9d (the same agent+tools offered from other pages) is the only
+remaining stretch item, and it's explicitly conditional on 9a-9c "proving
+valuable" first — that needs real usage, not more building. The eight
+numbered phases are otherwise all done; the app covers two problem types
+end to end: AutoML (Phases 1-3) and classical statistics — hypothesis
+testing, GLM, Bayesian modeling, time series, and survival analysis
+(Phases 4-8) — sharing one Data pipeline and one Copilot. Remaining scope
+decisions (see Non-goals for what's deliberately not here yet: power
+analysis, database sources, run persistence, sandboxed code execution for
+hosting), not obvious follow-ups — say which direction matters most.

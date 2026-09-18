@@ -1,13 +1,12 @@
-import pandas as pd
 import streamlit as st
 
+from agentic_ds.agent_tools import run_agent
 from agentic_ds.llm import get_chat_model, narrative_available
-from agentic_ds.sql_pipeline import nl_to_sql
 
 MEMORY_DB = "data/agentic_ds.db"
 
 st.title("Copilot")
-st.caption("Ask a question about the current dataset in plain English — it's converted to SQL and run for you.")
+st.caption("Ask anything about the current dataset — hypothesis tests, GLM/Bayesian models, trends, survival, or a raw data question. It picks the right tool(s) for the question.")
 
 df = st.session_state.df
 if df is None:
@@ -26,10 +25,10 @@ st.caption(f"Dataset: {dataset_label} · {len(df):,} rows × {len(df.columns)} c
 for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        if message.get("data") is not None and not message["data"].empty:
-            st.dataframe(message["data"], width="stretch", hide_index=True)
+        if message.get("tool_calls"):
+            st.caption("Used: " + ", ".join(c["tool"] for c in message["tool_calls"]))
 
-question = st.chat_input("e.g. \"average of each numeric column by category\" or \"top 5 rows by X\"")
+question = st.chat_input("e.g. \"is petal length different across species?\" or \"what predicts survival?\"")
 if question:
     st.session_state.chat_history.append({"role": "user", "content": question})
     with st.chat_message("user"):
@@ -37,21 +36,8 @@ if question:
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            result = nl_to_sql(
-                question=question,
-                df=df,
-                dataset_label=dataset_label,
-                model=get_chat_model(),
-                memory_db=MEMORY_DB,
-            )
-
-        if result["status"] == "success":
-            reply = f"```sql\n{result['sql']}\n```\n{result['rows_returned']} row(s) returned."
-            st.markdown(reply)
-            data = pd.DataFrame(result["data"])
-            st.dataframe(data, width="stretch", hide_index=True)
-            st.session_state.chat_history.append({"role": "assistant", "content": reply, "data": data})
-        else:
-            reply = f"Couldn't answer that after {result['attempts']} attempt(s). Last error: {result['error']}"
-            st.error(reply)
-            st.session_state.chat_history.append({"role": "assistant", "content": reply, "data": None})
+            result = run_agent(df, dataset_label, get_chat_model(), question, memory_db=MEMORY_DB)
+        st.markdown(result["answer"])
+        if result["tool_calls"]:
+            st.caption("Used: " + ", ".join(c["tool"] for c in result["tool_calls"]))
+        st.session_state.chat_history.append({"role": "assistant", "content": result["answer"], "tool_calls": result["tool_calls"]})

@@ -17,13 +17,18 @@ so a tool-calling loop can feed the result straight back as a
 retry with different arguments, the same self-correction shape
 `sql_pipeline.py` already uses for SQL.
 
-This module only builds the tool list. The loop that actually calls a
-model with these bound (`ChatOpenAI.bind_tools`) is Phase 9c, not here.
+Phase 9c's `run_agent()` is the loop: bind these tools to a model, put
+Phase 9b's skill menu in the system prompt, call -> run any requested
+tools -> feed results back -> repeat until a plain-language answer comes
+back or `MAX_TOOL_CALLS` is hit. Stateless per question, same as the
+NL-to-SQL tool it replaces in Copilot — no cross-question memory beyond
+what's already shown in the chat history.
 """
 
 import json
 
 import pandas as pd
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 
 from agentic_ds import bayesian as bys
@@ -32,7 +37,10 @@ from agentic_ds import stats_tests as sx
 from agentic_ds import survival as sv
 from agentic_ds import timeseries as ts
 from agentic_ds.eda import correlation_matrix, detect_outliers, numeric_summary, schema_overview, top_value_counts
+from agentic_ds.skills import skill_menu
 from agentic_ds.sql_pipeline import nl_to_sql
+
+MAX_TOOL_CALLS = 6
 
 
 def _safe_json(fn) -> str:
@@ -291,3 +299,40 @@ def build_tools(df: pd.DataFrame, source_label: str = "dataset", model=None, mem
         tools.append(smart_sql_query)
 
     return tools
+
+
+def run_agent(df: pd.DataFrame, source_label: str, model, question: str, memory_db: str = "data/agentic_ds.db") -> dict:
+    """One question in, one final answer out. Binds all tools above (plus
+    `smart_sql_query`, since `model` is always given here) and the Phase 9b
+    skill menu, then loops until the model stops requesting tools or
+    `MAX_TOOL_CALLS` is hit. Returns {"answer": str, "tool_calls": [{"tool", "args"}, ...]}
+    — the tool_calls list is for a UI to show its work, not required reading.
+    """
+    tools = build_tools(df, source_label, model=model, memory_db=memory_db)
+    tools_by_name = {t.name: t for t in tools}
+    model_with_tools = model.bind_tools(tools)
+
+    system_prompt = (
+        "You are a data analyst assistant with tools to inspect, test, and model the "
+        "currently loaded dataset. Answer the user's question by calling tools as needed, "
+        "then give a clear, plain-language final answer citing the actual numbers you found. "
+        "Never guess a result you could look up with a tool.\n\n"
+        "For multi-step questions, these playbooks name which tools to call and in what "
+        "order:\n" + skill_menu()
+    )
+
+    messages = [SystemMessage(content=system_prompt), HumanMessage(content=question)]
+    calls_made = []
+
+    for _ in range(MAX_TOOL_CALLS):
+        response = model_with_tools.invoke(messages)
+        messages.append(response)
+        if not response.tool_calls:
+            return {"answer": response.content, "tool_calls": calls_made}
+        for call in response.tool_calls:
+            tool_fn = tools_by_name.get(call["name"])
+            result = tool_fn.invoke(call["args"]) if tool_fn else json.dumps({"error": f"unknown tool '{call['name']}'"})
+            calls_made.append({"tool": call["name"], "args": call["args"]})
+            messages.append(ToolMessage(content=result, tool_call_id=call["id"]))
+
+    return {"answer": messages[-1].content or "Ran out of steps before reaching a final answer.", "tool_calls": calls_made}

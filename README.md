@@ -24,9 +24,11 @@ analysis) → **Copilot**. AutoML and Statistics are independent problem
 types sharing only the Data pages — each Statistics page has its own
 example questions and column pickers, not tied to the AutoML target.
 Optional AI features (Data profile's summary, Leaderboard's executive
-summary, every Statistics page's plain-English explanation, Copilot's
-NL-to-SQL) activate if `OPENROUTER_API_KEY` is set (see `.env.example`)
-— everything else works without it.
+summary, every Statistics page's plain-English explanation, Copilot)
+activate if `OPENROUTER_API_KEY` is set (see `.env.example`) — everything
+else works without it. Copilot is a real tool-calling agent (26 tools —
+every hypothesis test, GLM, Bayesian, ARIMA, Cox, plus NL-to-SQL — guided
+by 5 `skills/*.md` playbooks), not just a SQL box.
 
 ## Self-check
 
@@ -40,4 +42,6 @@ python3 -m tests.test_bayesian
 python3 -m tests.test_timeseries
 python3 -m tests.test_survival
 python3 -m tests.test_agent_tools
+python3 -m tests.test_skills
+python3 -m tests.test_run_agent
 ```
