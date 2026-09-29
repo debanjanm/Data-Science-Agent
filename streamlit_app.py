@@ -9,7 +9,10 @@ PLAN.md for the full product design.
 
 import streamlit as st
 
+from agentic_ds.theme import apply_theme
+
 st.set_page_config(page_title="Agentic data science", page_icon=":material/analytics:", layout="wide")
+apply_theme()
 
 for key, default in {
     "df": None,

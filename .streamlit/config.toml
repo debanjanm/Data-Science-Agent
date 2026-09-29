@@ -1,47 +1,47 @@
-# shadcn/ui-inspired theme — minimal, neutral, data-table friendly.
-# See PLAN.md / the developing-with-streamlit skill's theme.md for the source template.
+# Neobrutalist base theme. Borders/shadows/page color live in agentic_ds/theme.py.
+# Keep backgroundColor white: dataframes render on it; the page color is painted by CSS.
 
 [theme]
 base = "light"
-primaryColor = "#18181B"
+primaryColor = "#EFB3CF"
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#FAFAFA"
-codeBackgroundColor = "#F4F4F5"
-textColor = "#09090B"
-linkColor = "#18181B"
-borderColor = "#E4E4E7"
+secondaryBackgroundColor = "#FFFFFF"
+codeBackgroundColor = "#F4EBC8"
+textColor = "#171717"
+linkColor = "#171717"
+borderColor = "#171717"
 showWidgetBorder = true
 showSidebarBorder = true
-baseRadius = "6px"
-buttonRadius = "6px"
-font = "'Inter':https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+baseRadius = "12px"
+buttonRadius = "999px"
+font = "sans-serif"
+codeFont = "monospace"
 codeFontSize = "0.875rem"
-codeTextColor = "#18181B"
+codeTextColor = "#171717"
 baseFontSize = 14
 baseFontWeight = 400
 headingFontSizes = ["36px", "30px", "24px", "20px", "16px", "14px"]
-headingFontWeights = [600, 600, 600, 600, 600, 600]
+headingFontWeights = [900, 900, 800, 800, 800, 800]
 linkUnderline = true
-chartCategoricalColors = ["#18181B", "#71717A", "#A1A1AA", "#D4D4D8", "#3B82F6", "#EF4444", "#22C55E"]
+chartCategoricalColors = ["#171717", "#EFB3CF", "#A9D6CB", "#B3DDEB", "#A6E3B8", "#F09A93", "#F5D88A"]
 
-grayColor = "#71717A"
-blueColor = "#3B82F6"
-greenColor = "#22C55E"
-redColor = "#EF4444"
-yellowColor = "#EAB308"
-orangeColor = "#F97316"
-violetColor = "#8B5CF6"
+grayColor = "#171717"
+blueColor = "#B3DDEB"
+greenColor = "#A6E3B8"
+redColor = "#F09A93"
+yellowColor = "#F5D88A"
+orangeColor = "#F5D88A"
+violetColor = "#EFB3CF"
 
-dataframeBorderColor = "#E4E4E7"
-dataframeHeaderBackgroundColor = "#FAFAFA"
+dataframeBorderColor = "#171717"
+dataframeHeaderBackgroundColor = "#A9D6CB"
 
 [theme.sidebar]
-backgroundColor = "#FAFAFA"
-secondaryBackgroundColor = "#F4F4F5"
-codeBackgroundColor = "#E4E4E7"
-textColor = "#09090B"
-borderColor = "#E4E4E7"
-primaryColor = "#18181B"
-dataframeHeaderBackgroundColor = "#F4F4F5"
-dataframeBorderColor = "#E4E4E7"
+backgroundColor = "#A9D6CB"
+secondaryBackgroundColor = "#FFFFFF"
+codeBackgroundColor = "#F4EBC8"
+textColor = "#171717"
+borderColor = "#171717"
+primaryColor = "#EFB3CF"
+dataframeHeaderBackgroundColor = "#A9D6CB"
+dataframeBorderColor = "#171717"
